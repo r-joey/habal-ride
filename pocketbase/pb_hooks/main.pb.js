@@ -8,6 +8,17 @@ onRecordCreate((e) => {
     }
 }, "rides")
 
+// hook for setting verified payment to false upon creating 
+onRecordCreate((e) => { 
+    try {
+        e.record.set("verified", false) 
+        e.next()
+        
+    } catch (error) {
+        $app.logger().error(error)
+    }
+ }, "payments")
+
 // hook for creating a subscription for every driver
 onRecordAfterCreateSuccess((e) => { 
     try {
@@ -56,6 +67,34 @@ onRecordAfterUpdateSuccess((e) => {
     }
     e.next()
 }, "rides")
+
+onRecordAfterUpdateSuccess((e) => {
+    try {
+        let subscription = $app.findFirstRecordByFilter(
+            "subscriptions",
+            `driver = '${e.record.get("driver")}'`
+        )
+        if (subscription) {
+            let currentExpiry = new Date(subscription.get("expiry"));
+            let now = new Date();
+            let newExpiryDate;
+
+            if (currentExpiry < now) {
+                // If the expiry has already expired, start from today
+                newExpiryDate = new Date(now.setDate(now.getDate() + 15));
+            } else {
+                // If not expired, add 15 days to the existing expiry
+                newExpiryDate = new Date(currentExpiry.setDate(currentExpiry.getDate() + 15));
+            }
+             
+            subscription.set("expiry", newExpiryDate.toISOString() )
+            $app.save(subscription);
+        }
+    } catch (err) {
+        $app.logger().info(`Upon updating a payment, an error was encountered ${err}`)
+    }
+    e.next()
+}, "payments")
 
 // cron job to clean up expired rides
 cronAdd(`rideCleaner`, "*/1 * * * *", () => {

@@ -2,10 +2,10 @@
     import { LogOut, Camera  } from 'lucide-svelte';
     import { signout } from '$lib/pocketbase.svelte'
     import { currentUser, getImageUrl, updateProfile, updatePassword, updateVehicle, createVehicle } from '$lib/pocketbase.svelte';
+    import { Payments } from '$lib/components/driver';
     import { toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
 
-    let paymenInstructionsModal;
     const collectionType = 'drivers'
     const sizeLimitBytes = 7000000
     let profileUpdateLoading = $state(false)
@@ -83,10 +83,14 @@
             } else {
                 toast.error(message);
             }
-        }
-
-       
+        } 
         vehicleUpdateLoading = false
+    }
+
+    function onUpdateSubscription(latest) { 
+        let tempUser = $currentUser 
+        tempUser.expand.subscriptions_via_driver = [latest]
+        currentUser.set(tempUser)
     }
 
 </script>
@@ -147,68 +151,8 @@
         </button>
     </form>
     
-    <div class="divider">Subscription</div>
-    <form   class="flex flex-col gap-2 border border-gray-300 p-4 rounded-sm bg-gray-50 justify-center w-full">
-        
-        <label class="form-control w-full max-w-md">
-            <div class="label">
-              <span class="label-text text-gray-500">Reference number</span> 
-            </div>
-            <input name="reference_number"  type="text" class="input input-sm input-bordered w-full max-w-md" required /> 
-        </label>
-        <button type="submit" disabled={vehicleUpdateLoading} class="btn btn-primary w-full mt-2">
-            {#if vehicleUpdateLoading}
-            <span class="loading loading-spinner loading-md"></span>
-            {/if}
-            Send Payment
-        </button>
-        <button type="button" onclick={() => paymenInstructionsModal.showModal()} class="btn btn-outline btn-link btn-sm w-full mt-2">How to pay?</button> 
-
-    </form>
-
-    <dialog bind:this={paymenInstructionsModal} class="modal">
-        <div class="modal-box">
-            <h3 class="text-lg font-bold">QR Codes</h3>
-            <ul class="space-y-4">
-                <li>
-                    <p><strong>Step 1:</strong> Scan QR code to pay.</p>
-                    <img src="step1.png" alt="Open GCash app" class="w-full rounded-lg shadow">
-                </li>
-                <li>
-                    <p><strong>Step 2:</strong> Enter reference number and tap send payment</p>
-                    <ul class="list-disc list-inside ml-6">
-                        <li><strong>Account Name:</strong> Your Account Name</li>
-                        <li><strong>Mobile Number:</strong> Your Mobile Number</li>
-                        <li><strong>Amount:</strong> Amount to Send</li>
-                    </ul>
-                    <img src="step2.png" alt="Enter details in GCash" class="w-full rounded-lg shadow">
-                </li>
-                <li>
-                    <p><strong>Step 3:</strong> Review and confirm the payment details.</p>
-                    <img src="step3.png" alt="Confirm payment" class="w-full rounded-lg shadow">
-                </li>
-                <li>
-                    <p><strong>Step 4:</strong> Take a screenshot of your payment confirmation.</p>
-                    <img src="step4.png" alt="Take a screenshot" class="w-full rounded-lg shadow">
-                </li>
-                <li>
-                    <p><strong>Step 5:</strong> Submit the screenshot of the payment confirmation.</p>
-                    <img src="step5.png" alt="Submit screenshot" class="w-full rounded-lg shadow">
-                </li>
-                <li>
-                    <p><strong>Step 6:</strong> Wait for verification and access confirmation.</p>
-                    <img src="step6.png" alt="Success confirmation" class="w-full rounded-lg shadow">
-                </li>
-            </ul>
-        </div>
-        <form method="dialog" class="modal-backdrop">
-            <button>close</button>
-        </form>
-    </dialog>
-
-
-
-
+     <Payments {onUpdateSubscription} />
+ 
     <div class="divider">Vehicle</div>
     <form onsubmit={(e) => updateVehicleHandler(e)} class="flex flex-col gap-2 border border-gray-300 p-4 rounded-sm bg-gray-50 justify-center w-full">
         
